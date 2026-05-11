@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>CAT'S CRADLE</title>
+<style>
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  :root { --cyan:#00f5ff; --magenta:#ff00e4; --yellow:#fff200; }
+  html, body {
+    width:100%; height:100%; background:#020817;
+    overflow:hidden; touch-action:none;
+    -webkit-user-select:none; font-family:'Courier New',monospace;
+  }
+  body::after {
+    content:''; position:fixed; inset:0;
+    background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.1) 3px,rgba(0,0,0,0.1) 4px);
+    pointer-events:none; z-index:90;
+  }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background:radial-gradient(ellipse at center,transparent 30%,rgba(2,8,23,0.88) 100%);
+    pointer-events:none; z-index:89;
+  }
+
+  #c { position:fixed; inset:0; width:100%; height:100%; z-index:1; }
+  #vid {
+    position:fixed; bottom:0; right:0;
+    width:1px; height:1px; opacity:0;
+    pointer-events:none;
+  }
+
+  /* SPLASH */
+  #splash {
+    position:fixed; inset:0; background:#020817;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    gap:14px; z-index:200;
+    padding:env(safe-area-inset-top,20px) 28px env(safe-area-inset-bottom,20px);
+    transition:opacity 0.7s;
+  }
+  #splash.gone { opacity:0; pointer-events:none; }
+  .ico { font-size:50px; animation:bob 2.5s ease-in-out infinite; }
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  h1 {
+    font-size:clamp(28px,9vw,50px); font-weight:900;
+    letter-spacing:.12em; color:var(--cyan);
+    text-shadow:0 0 20px var(--cyan),0 0 50px rgba(0,245,255,.3);
+    text-align:center;
+  }
+  .tag { font-size:10px; letter-spacing:.4em; color:var(--magenta); text-shadow:0 0 8px var(--magenta); }
+  #splash p {
+    font-size:12px; line-height:1.9; color:rgba(0,245,255,.5);
+    text-align:center; max-width:280px; letter-spacing:.05em;
+  }
+  #splash p strong { color:var(--yellow); text-shadow:0 0 8px var(--yellow); }
+  #startBtn {
+    margin-top:6px; background:transparent;
+    border:1.5px solid var(--cyan); color:var(--cyan);
+    font-family:'Courier New',monospace; font-size:12px;
+    font-weight:700; letter-spacing:.28em; padding:14px 40px;
+    -webkit-tap-highlight-color:transparent; cursor:pointer;
+    text-transform:uppercase;
+    box-shadow:0 0 20px rgba(0,245,255,.15),inset 0 0 16px rgba(0,245,255,.04);
+    transition:all .2s;
+  }
+  #startBtn:active { background:rgba(0,245,255,.1); transform:scale(.97); }
+
+  /* HUD */
+  #hud {
+    position:fixed; top:0; left:0; right:0;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 0;
+    z-index:50; pointer-events:none;
+  }
+  #logo { font-size:12px; font-weight:900; letter-spacing:.2em; color:var(--cyan); text-shadow:0 0 10px var(--cyan); line-height:1.4; }
+  #logo small { display:block; font-size:8px; letter-spacing:.32em; color:var(--magenta); text-shadow:0 0 6px var(--magenta); }
+  #pills { display:flex; flex-direction:column; gap:4px; align-items:flex-end; }
+  .pill { font-size:9px; letter-spacing:.1em; padding:4px 9px; border:1px solid rgba(0,245,255,.15); border-radius:20px; color:rgba(0,245,255,.35); display:flex; align-items:center; gap:5px; transition:all .4s; }
+  .pill.on { border-color:var(--cyan); color:var(--cyan); box-shadow:0 0 8px rgba(0,245,255,.2); }
+  .led { width:5px; height:5px; border-radius:50%; background:rgba(0,245,255,.2); flex-shrink:0; }
+  .pill.on .led { background:var(--cyan); box-shadow:0 0 5px var(--cyan); animation:blink 1.4s ease-in-out infinite; }
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+  #hint {
+    position:fixed; bottom:calc(env(safe-area-inset-bottom,8px)+6px);
+    left:0; right:0; text-align:center;
+    font-size:9px; letter-spacing:.2em; color:rgba(0,245,255,.2);
+    text-transform:uppercase; z-index:50; pointer-events:none;
+  }
+
+  /* LOADER */
+  #loader {
+    position:fixed; inset:0; background:rgba(2,8,23,.95);
+    display:none; flex-direction:column;
+    align-items:center; justify-content:center; gap:20px; z-index:300;
+  }
+  #loader.show { display:flex; }
+  #lmsg { font-size:11px; letter-spacing:.28em; color:var(--cyan); text-shadow:0 0 8px var(--cyan); animation:blink 1s infinite; text-align:center; max-width:260px; line-height:1.8; }
+  #ltrack { width:180px; height:2px; background:rgba(0,245,255,.12); border-radius:2px; overflow:hidden; }
+  #lfill { height:100%; background:linear-gradient(90deg,var(--cyan),var(--magenta)); box-shadow:0 0 6px var(--cyan); width:0%; transition:width .3s ease; }
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="ico">🕸️</div>
+  <h1>CAT'S CRADLE</h1>
+  <div class="tag">NEON STRING RITUAL — iOS</div>
+  <p>Raise <strong>both hands</strong> in front of your camera. Fingertips weave glowing laser strings.</p>
+  <button id="startBtn">INITIATE SEQUENCE</button>
+</div>
+
+<div id="loader">
+  <div id="lmsg">LOADING…</div>
+  <div id="ltrack"><div id="lfill"></div></div>
+</div>
+
+<div id="hud">
+  <div id="logo">CAT'S CRADLE<small>NEON STRING RITUAL</small></div>
+  <div id="pills">
+    <div class="pill" id="pcam"><span class="led"></span>CAMERA</div>
+    <div class="pill" id="phands"><span class="led"></span>HANDS: <span id="hcount">0</span></div>
+  </div>
+</div>
+
+<canvas id="c"></canvas>
+<video id="vid" autoplay playsinline muted></video>
+<div id="hint">BRING FINGERTIPS TOGETHER TO DETONATE</div>
+
+<!-- handtrack.js — lightweight, works on Safari iOS -->
+<script src="https://cdn.jsdelivr.net/npm/handtrackjs@0.0.13/dist/handtrack.min.js"></script>
+
+<script>
+// ── CONSTANTS ────────────────────────────────────────────────
+const CY=[0,245,255], MG=[255,0,228], YL=[255,242,0];
+const SPAIRS=[[CY,MG],[MG,YL],[YL,CY],[CY,YL],[MG,CY]];
+
+// Simulated fingertip offsets relative to hand center (normalized)
+// We generate 5 fingertips per hand from each detected box
+const TIP_OFFSETS = [
+  [-0.35, -0.45], // thumb
+  [-0.15, -0.55], // index
+  [ 0.00, -0.58], // middle
+  [ 0.15, -0.52], // ring
+  [ 0.30, -0.42], // pinky
+];
+
+const KNUCKLE_OFFSETS = [
+  [-0.30, -0.20],
+  [-0.15, -0.28],
+  [ 0.00, -0.30],
+  [ 0.15, -0.26],
+  [ 0.28, -0.18],
+];
+
+// ── STATE ───────────────────────────────────────────────────
+let canvas, ctx, vidEl, model;
+let W, H, frame=0;
+let handBoxes = []; // raw predictions from handtrack
+let particles = [], cooldowns = {};
+
+// ── UTILS ───────────────────────────────────────────────────
+function lerpC(a,b,f){return a.map((v,i)=>v+(b[i]-v)*f);}
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
+function d2(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1]);}
+function rgba(c,a){return `rgba(${c[0]},${c[1]},${c[2]},${a})`;}
+
+// ── PARTICLE ────────────────────────────────────────────────
+class P {
+  constructor(x,y,col){
+    const a=Math.random()*Math.PI*2, s=2+Math.random()*7;
+    Object.assign(this,{x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1,
+      life:1,decay:.022+Math.random()*.028,r:2+Math.random()*4,col,trail:[]});
+  }
+  update(){
+    this.trail.push([this.x,this.y]);
+    if(this.trail.length>6)this.trail.shift();
+    this.x+=this.vx; this.y+=this.vy;
+    this.vy+=.14; this.vx*=.96; this.life-=this.decay;
+  }
+  get dead(){return this.life<=0;}
+}
+
+function boom(x,y){
+  [CY,MG,YL,MG,CY].forEach(c=>{
+    for(let i=0;i<7;i++) particles.push(new P(x,y,c));
+  });
+}
+
+// ── HAND BOX → FINGERTIPS ───────────────────────────────────
+function boxToHand(box) {
+  // handtrack gives [x, y, width, height] in VIDEO pixel space
+  // We need to mirror x and scale to screen
+  const vw = vidEl.videoWidth  || 320;
+  const vh = vidEl.videoHeight || 240;
+
+  const bx = box[0], by = box[1], bw = box[2], bh = box[3];
+  const cx = bx + bw/2, cy = by + bh/2;
+
+  // Mirror x
+  const scx = (1 - cx/vw) * W;
+  const scy = (cy/vh) * H;
+  const sw  = (bw/vw) * W;
+  const sh  = (bh/vh) * H;
+
+  // Generate fingertips
+  const tips = TIP_OFFSETS.map(([ox,oy]) => [
+    scx + ox * sw,
+    scy + oy * sh,
+  ]);
+  const knuckles = KNUCKLE_OFFSETS.map(([ox,oy]) => [
+    scx + ox * sw,
+    scy + oy * sh,
+  ]);
+
+  return { cx: scx, cy: scy, sw, sh, tips, knuckles,
+    wrist: [scx, scy + sh*0.3] };
+}
+
+// ── DRAW LASER ───────────────────────────────────────────────
+function laser(x1,y1,x2,y2,ca,cb,stretch){
+  const thick=clamp(3.5-stretch*2.5,.5,3.5);
+  const glow =clamp(28-stretch*14,5,28);
+  const alpha=clamp(1-stretch*.5,.2,1);
+  const mid  =lerpC(ca,cb,.5);
+  const wave =6*(1-stretch)*Math.sin(frame*.045+x1*.008);
+  const mx=(x1+x2)/2+wave, my=(y1+y2)/2+wave*.4;
+
+  [[alpha*.09,glow*2.6,thick*5],[alpha*.22,glow*1.2,thick*2.3],[alpha*.88,glow*.3,thick]].forEach(([a,blur,w])=>{
+    const g=ctx.createLinearGradient(x1,y1,x2,y2);
+    g.addColorStop(0,rgba(ca,a)); g.addColorStop(.5,rgba(mid,a)); g.addColorStop(1,rgba(cb,a));
+    ctx.save(); ctx.shadowBlur=blur; ctx.shadowColor=rgba(mid,Math.min(1,a*2));
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.quadraticCurveTo(mx,my,x2,y2);
+    ctx.strokeStyle=g; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke();
+    ctx.restore();
+  });
+}
+
+// ── DRAW HAND ───────────────────────────────────────────────
+function drawHand(hand, col) {
+  const {tips, knuckles, wrist, cx, cy} = hand;
+
+  // Palm lines
+  const palmPts = [wrist, knuckles[0], knuckles[1], knuckles[2], knuckles[3], knuckles[4]];
+  ctx.save();
+  ctx.shadowBlur=6; ctx.shadowColor=rgba(col,.3);
+  ctx.beginPath();
+  palmPts.forEach((p,i)=>i===0?ctx.moveTo(p[0],p[1]):ctx.lineTo(p[0],p[1]));
+  ctx.strokeStyle=rgba(col,.18); ctx.lineWidth=1.2; ctx.stroke();
+  ctx.restore();
+
+  // Finger lines
+  tips.forEach((tip,i)=>{
+    const kn=knuckles[i];
+    ctx.save();
+    ctx.shadowBlur=5; ctx.shadowColor=rgba(col,.25);
+    ctx.beginPath(); ctx.moveTo(kn[0],kn[1]); ctx.lineTo(tip[0],tip[1]);
+    ctx.strokeStyle=rgba(col,.2); ctx.lineWidth=1; ctx.stroke();
+    ctx.restore();
+  });
+
+  // Dots on joints
+  [...knuckles, ...tips, wrist].forEach((pt,i)=>{
+    const isTip = i >= knuckles.length && i < knuckles.length+tips.length;
+    const f = i/20;
+    const c = lerpC(col, YL, f*.28);
+    const r = isTip ? 5 : 3;
+    ctx.save();
+    ctx.shadowBlur=isTip?20:9; ctx.shadowColor=rgba(c,1);
+    ctx.beginPath(); ctx.arc(pt[0],pt[1],r,0,Math.PI*2);
+    ctx.fillStyle=rgba(c,1); ctx.fill();
+    ctx.shadowBlur=3; ctx.shadowColor='rgba(255,255,255,.85)';
+    ctx.beginPath(); ctx.arc(pt[0],pt[1],r*.38,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,.85)'; ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ── MAIN LOOP ───────────────────────────────────────────────
+let detecting = false;
+async function detect() {
+  if(!model||!vidEl||vidEl.readyState<2){requestAnimationFrame(detect);return;}
+  if(!detecting){
+    detecting=true;
+    try{
+      const preds = await model.detect(vidEl);
+      // Filter to 'open' or 'closed' hand predictions only (not face/point)
+      handBoxes = preds
+        .filter(p=>p.label==='open'||p.label==='closed'||p.label==='point'||p.label==='pinch')
+        .slice(0,2)
+        .map(p=>p.bbox);
+    }catch(e){}
+    detecting=false;
+  }
+  requestAnimationFrame(detect);
+}
+
+function render(){
+  frame++;
+  ctx.clearRect(0,0,W,H);
+
+  // BG
+  const bg=ctx.createRadialGradient(W/2,H*.4,0,W/2,H/2,Math.max(W,H)*.8);
+  bg.addColorStop(0,'rgba(6,14,42,1)');
+  bg.addColorStop(.5,'rgba(3,9,24,1)');
+  bg.addColorStop(1,'rgba(2,8,23,1)');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.save(); ctx.globalAlpha=.03; ctx.strokeStyle='#00f5ff'; ctx.lineWidth=.5;
+  for(let x=0;x<W;x+=54){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=54){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  ctx.restore();
+
+  // Video silhouette
+  if(vidEl&&vidEl.readyState>=2){
+    try{
+      ctx.save(); ctx.globalAlpha=.12;
+      ctx.filter='saturate(0) brightness(.35) sepia(1) hue-rotate(185deg)';
+      ctx.translate(W,0); ctx.scale(-1,1);
+      ctx.drawImage(vidEl,0,0,W,H);
+      ctx.restore();
+    }catch(e){}
+  }
+
+  // Parse hands
+  const hands = handBoxes.map(b=>boxToHand(b));
+  // Sort left to right on screen
+  hands.sort((a,b)=>a.cx-b.cx);
+  const L=hands[0]||null, R=hands[1]||null;
+
+  // Strings between hands
+  if(L&&R){
+    const stretch=clamp(d2([L.cx,L.cy],[R.cx,R.cy])/(Math.hypot(W,H)*.6),0,1);
+    SPAIRS.forEach(([ca,cb],i)=>{
+      if(!L.tips[i]||!R.tips[i])return;
+      laser(L.tips[i][0],L.tips[i][1],R.tips[i][0],R.tips[i][1],ca,cb,stretch);
+    });
+    // Collision
+    SPAIRS.forEach((_,i)=>{
+      if(!L.tips[i]||!R.tips[i])return;
+      const k=`t${i}`; if(!cooldowns[k])cooldowns[k]=0;
+      if(d2(L.tips[i],R.tips[i])<50&&cooldowns[k]<=0){
+        boom((L.tips[i][0]+R.tips[i][0])/2,(L.tips[i][1]+R.tips[i][1])/2);
+        cooldowns[k]=55;
+      }
+      if(cooldowns[k]>0)cooldowns[k]--;
+    });
+  }
+
+  if(L) drawHand(L, CY);
+  if(R) drawHand(R, MG);
+
+  // Particles
+  particles=particles.filter(p=>!p.dead);
+  particles.forEach(p=>{
+    p.update();
+    p.trail.forEach((pt,i)=>{
+      const a=(i/p.trail.length)*p.life*.3;
+      ctx.beginPath();ctx.arc(pt[0],pt[1],p.r*(i/p.trail.length)*.6,0,Math.PI*2);
+      ctx.fillStyle=rgba(p.col,a);ctx.fill();
+    });
+    ctx.save();ctx.shadowBlur=14;ctx.shadowColor=rgba(p.col,p.life);
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2);
+    ctx.fillStyle=rgba(p.col,p.life);ctx.fill();ctx.restore();
+  });
+
+  // HUD
+  const cnt=(L?1:0)+(R?1:0);
+  document.getElementById('hcount').textContent=cnt;
+  document.getElementById('phands').className=cnt>0?'pill on':'pill';
+
+  requestAnimationFrame(render);
+}
+
+function resize(){
+  W=canvas.width=window.innerWidth;
+  H=canvas.height=window.innerHeight;
+}
+
+// ── BOOT ────────────────────────────────────────────────────
+document.getElementById('startBtn').addEventListener('click', async()=>{
+  document.getElementById('splash').classList.add('gone');
+  document.getElementById('loader').classList.add('show');
+  const fill=document.getElementById('lfill'), msg=document.getElementById('lmsg');
+
+  let prog=0;
+  const tick=setInterval(()=>{prog=Math.min(prog+Math.random()*6,82);fill.style.width=prog+'%';},200);
+
+  // Camera
+  msg.textContent='ACCESSING CAMERA…';
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'user',width:{ideal:320},height:{ideal:240}},audio:false
+    });
+    vidEl=document.getElementById('vid');
+    vidEl.srcObject=stream;
+    await new Promise(r=>{vidEl.onloadeddata=r; setTimeout(r,3000);});
+    document.getElementById('pcam').className='pill on';
+  }catch(e){
+    msg.textContent='CAMERA BLOCKED — ALLOW IN SAFARI SETTINGS';
+    clearInterval(tick); return;
+  }
+
+  // HandTrack model — much lighter than TF/ml5
+  msg.textContent='LOADING HAND TRACKER…';
+  try{
+    const modelParams={
+      flipHorizontal:false,
+      outputStride:16,
+      imageScaleFactor:0.7,
+      maxNumBoxes:2,
+      iouThreshold:0.5,
+      scoreThreshold:0.65,
+      modelType:'ssd320fpnlite',
+      modelSize:'small',
+      bboxLineWidth:'2',
+      fontSize:17,
+    };
+    model = await handTrack.load(modelParams);
+    clearInterval(tick); fill.style.width='100%';
+    await new Promise(r=>setTimeout(r,400));
+    document.getElementById('loader').classList.remove('show');
+    detect();
+    render();
+  }catch(e){
+    msg.textContent='FAILED: '+e.message;
+    clearInterval(tick);
+  }
+});
+
+// Init canvas
+canvas=document.getElementById('c');
+ctx=canvas.getContext('2d');
+resize();
+window.addEventListener('resize',resize);
+</script>
+</body>
+</html>
