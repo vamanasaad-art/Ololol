@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>GAMING HANDS</title>
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;background:#000;overflow:hidden;touch-action:none;-webkit-user-select:none;font-family:'Courier New',monospace;}
+
+  /* Video as full background — natural color */
+  #vid{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;}
+  #c{position:fixed;inset:0;width:100%;height:100%;z-index:1;}
+
+  /* SPLASH */
+  #splash{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:200;padding:env(safe-area-inset-top,20px) 28px env(safe-area-inset-bottom,20px);transition:opacity .7s;}
+  #splash.gone{opacity:0;pointer-events:none;}
+  .ico{font-size:52px;animation:bob 2s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  #splash h1{font-size:clamp(24px,8vw,44px);font-weight:900;letter-spacing:.1em;text-align:center;line-height:1.1;color:#00f5ff;text-shadow:0 0 20px #00f5ff;}
+  .tag{font-size:10px;letter-spacing:.4em;text-align:center;color:rgba(0,245,255,.6);}
+  #splash p{font-size:11px;line-height:1.9;color:rgba(255,255,255,.4);text-align:center;max-width:270px;}
+  #splash p strong{color:#00f5ff;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+  .cam-btn{background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.5);font-family:'Courier New',monospace;font-size:10px;font-weight:700;letter-spacing:.18em;padding:9px 16px;cursor:pointer;text-transform:uppercase;-webkit-tap-highlight-color:transparent;transition:all .2s;border-radius:2px;}
+  .cam-btn.sel{background:rgba(0,245,255,.08);border-color:#00f5ff;color:#00f5ff;}
+  #startBtn{background:transparent;border:1.5px solid #00f5ff;color:#00f5ff;font-family:'Courier New',monospace;font-size:13px;font-weight:700;letter-spacing:.26em;padding:14px 42px;cursor:pointer;text-transform:uppercase;-webkit-tap-highlight-color:transparent;box-shadow:0 0 20px rgba(0,245,255,.2);transition:all .2s;margin-top:4px;}
+  #startBtn:active{transform:scale(.97);background:rgba(0,245,255,.1);}
+
+  /* LOADER */
+  #loader{position:fixed;inset:0;background:rgba(0,0,0,.96);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;z-index:300;}
+  #loader.show{display:flex;}
+  #lmsg{font-size:11px;letter-spacing:.26em;color:#00f5ff;animation:blink 1s infinite;text-align:center;max-width:280px;line-height:1.9;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+  #ltrack{width:200px;height:2px;border-radius:2px;overflow:hidden;background:rgba(255,255,255,.1);}
+  #lfill{height:100%;width:0%;transition:width .3s ease;background:linear-gradient(90deg,#00f5ff,#fff);}
+
+  /* HUD */
+  #hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:calc(env(safe-area-inset-top,0px)+12px) 14px 0;z-index:50;pointer-events:none;}
+  #logo{font-size:11px;font-weight:900;letter-spacing:.18em;line-height:1.4;color:#00f5ff;text-shadow:0 0 8px #00f5ff;}
+  #logo small{display:block;font-size:8px;letter-spacing:.28em;opacity:.45;}
+  #camToggle{font-size:9px;letter-spacing:.1em;padding:5px 10px;border:1px solid rgba(255,255,255,.18);border-radius:20px;color:rgba(255,255,255,.5);background:rgba(0,0,0,.5);cursor:pointer;-webkit-tap-highlight-color:transparent;pointer-events:all;}
+
+  /* MODE BAR */
+  #modebar{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px)+48px);left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:50;background:rgba(0,0,0,.6);padding:8px 12px;border-radius:40px;border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(10px);}
+  .modeBtn{width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(255,255,255,.12);background:transparent;font-size:18px;cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center;transition:all .25s;}
+  .modeBtn.active{transform:scale(1.18);}
+
+  #hint{position:fixed;bottom:calc(env(safe-area-inset-bottom,8px)+8px);left:0;right:0;text-align:center;font-size:9px;letter-spacing:.14em;color:rgba(255,255,255,.22);text-transform:uppercase;z-index:49;pointer-events:none;}
+
+  #meter{position:fixed;right:12px;top:50%;transform:translateY(-50%);width:4px;height:100px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;z-index:50;pointer-events:none;}
+  #mfill{position:absolute;bottom:0;left:0;right:0;height:0%;transition:height .08s ease;border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="ico">⚡</div>
+  <h1>GAMING HANDS</h1>
+  <div class="tag">ELECTRIC EDITION — PUBG MOBILE</div>
+  <p>Natural camera feed. Pinch <strong>thumb + index</strong> to shoot an energy beam. Switch modes below.</p>
+  <div class="btn-row">
+    <button class="cam-btn sel" id="btnBack">📷 BACK CAM</button>
+    <button class="cam-btn" id="btnFront">🤳 FRONT CAM</button>
+  </div>
+  <button id="startBtn">⚡ ACTIVATE</button>
+</div>
+
+<div id="loader"><div id="lmsg">LOADING…</div><div id="ltrack"><div id="lfill"></div></div></div>
+
+<div id="hud">
+  <div id="logo" id="logo">⚡ GAMING HANDS<small id="modeName">ELECTRIC</small></div>
+  <button id="camToggle">🔄 FLIP</button>
+</div>
+
+<div id="modebar">
+  <button class="modeBtn active" id="m0">⚡</button>
+  <button class="modeBtn" id="m1">🔥</button>
+  <button class="modeBtn" id="m2">🔮</button>
+  <button class="modeBtn" id="m3">🩸</button>
+  <button class="modeBtn" id="m4">🌈</button>
+</div>
+
+<div id="meter"><div id="mfill"></div></div>
+<div id="hint">PINCH THUMB + INDEX → SHOOT ENERGY BEAM</div>
+
+<!-- Video behind canvas — natural color -->
+<video id="vid" autoplay playsinline muted></video>
+<canvas id="c"></canvas>
+
+<script type="module">
+import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+// ── MODES ────────────────────────────────────────────────────
+const MODES=[
+  {name:'ELECTRIC',c1:[0,245,255],c2:[180,235,255],c3:[255,255,255],c4:[0,140,255],hc:'#00f5ff',mg:'#00f5ff,#ffffff'},
+  {name:'FIRE',    c1:[255,90,0], c2:[255,200,0],  c3:[255,240,120],c4:[200,20,0], hc:'#ff5a00',mg:'#ff3000,#ffcc00'},
+  {name:'MAGIC',   c1:[190,0,255],c2:[255,0,210],  c3:[220,190,255],c4:[110,0,200],hc:'#be00ff',mg:'#8800ff,#ff00cc'},
+  {name:'BLOOD',   c1:[220,0,30], c2:[255,70,70],  c3:[255,190,190],c4:[130,0,10], hc:'#dd0020',mg:'#aa0010,#ff4444'},
+  {name:'RAINBOW', c1:null,       c2:null,          c3:[255,255,255],c4:null,       hc:'#ffffff',mg:'#ff0000,#00ffff'},
+];
+let modeIdx=0;
+const M=()=>MODES[modeIdx];
+const RB=(o=0)=>{const h=(Date.now()*.06+o)%360;return[Math.round(127+127*Math.sin(h*Math.PI/180)),Math.round(127+127*Math.sin((h+120)*Math.PI/180)),Math.round(127+127*Math.sin((h+240)*Math.PI/180))];};
+const C1=(o=0)=>M().c1||RB(o);
+const C2=(o=0)=>M().c2||RB(o+60);
+const C4=(o=0)=>M().c4||RB(o+120);
+
+// ── CONSTANTS ────────────────────────────────────────────────
+const TIPS=[4,8,12,16,20];
+const CONNS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];
+const MAX_P=130;
+const PINCH_PX=42;
+
+// ── STATE ────────────────────────────────────────────────────
+let canvas,ctx,vidEl,landmarker,camStream;
+let W,H,fr=0,lastT=-1;
+let handArr=[];
+let particles=[],bolts=[],beams=[],trails={},prevPos={};
+let pinchCD={},pinchActive={};
+let intensity=0,animOn=false,busy=false,useFront=false;
+
+const rg=(c,a)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const lC=(a,b,f)=>a.map((v,i)=>v+(b[i]-v)*f);
+const cl=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+const rn=(a,b)=>a+Math.random()*(b-a);
+const d2=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+
+// ── SPARK ────────────────────────────────────────────────────
+class Spark{
+  constructor(x,y,vx,vy,col,life){
+    this.x=x;this.y=y;this.vx=vx??rn(-4,4);this.vy=vy??rn(-5,1);
+    this.col=col||C1();this.r=rn(1,3.2);this.life=life||1;this.decay=rn(.02,.042);
+  }
+  step(){this.x+=this.vx;this.y+=this.vy;this.vy+=.1;this.vx*=.95;this.life-=this.decay;}
+  show(){
+    ctx.save();ctx.shadowBlur=11;ctx.shadowColor=rg(this.col,this.life);
+    ctx.beginPath();ctx.arc(this.x,this.y,this.r*this.life,0,Math.PI*2);
+    ctx.fillStyle=rg(this.col,this.life);ctx.fill();ctx.restore();
+  }
+  get dead(){return this.life<=0;}
+}
+
+// ── BOLT ─────────────────────────────────────────────────────
+class Bolt{
+  constructor(x1,y1,x2,y2,col){
+    this.col=col||C1();this.life=1;this.decay=.09+Math.random()*.07;
+    this.pts=this._mk(x1,y1,x2,y2,4);
+  }
+  _mk(x1,y1,x2,y2,d){
+    if(!d)return[{x:x1,y:y1},{x:x2,y:y2}];
+    const l=Math.hypot(x2-x1,y2-y1);
+    const mx=(x1+x2)/2+(Math.random()-.5)*l*.4;
+    const my=(y1+y2)/2+(Math.random()-.5)*l*.4;
+    return[...this._mk(x1,y1,mx,my,d-1),...this._mk(mx,my,x2,y2,d-1)];
+  }
+  step(){this.life-=this.decay;}
+  show(){
+    if(this.life<=0)return;
+    ctx.save();ctx.shadowBlur=16*this.life;ctx.shadowColor=rg(this.col,this.life);
+    ctx.strokeStyle=rg(this.col,this.life);ctx.lineWidth=1.4*this.life;ctx.lineCap='round';
+    ctx.beginPath();this.pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+    ctx.stroke();ctx.restore();
+  }
+  get dead(){return this.life<=0;}
+}
+
+// ── ENERGY BEAM ──────────────────────────────────────────────
+// Shoots from pinch point in direction index finger is pointing
+class Beam{
+  constructor(x,y,dx,dy,col){
+    this.x=x;this.y=y;       // current head position
+    this.ox=x;this.oy=y;     // origin
+    const len=Math.hypot(dx,dy)||1;
+    this.vx=(dx/len)*28;     // fast travel
+    this.vy=(dy/len)*28;
+    this.col=col||C1();
+    this.life=1;
+    this.decay=.035;
+    this.trail=[];
+    this.hit=false;
+    this.w=8;                // beam width
+  }
+  step(){
+    if(this.hit)return;
+    this.trail.push({x:this.x,y:this.y});
+    if(this.trail.length>20)this.trail.shift();
+    this.x+=this.vx;
+    this.y+=this.vy;
+    this.life-=this.decay;
+    // Hit edge — explode
+    if(this.x<0||this.x>W||this.y<0||this.y>H){
+      this.hit=true;
+      this._explode();
+    }
+  }
+  _explode(){
+    const n=Math.min(28,MAX_P-particles.length);
+    for(let i=0;i<n;i++){
+      const a=Math.random()*Math.PI*2,s=2+Math.random()*7;
+      const c=modeIdx===4?RB(i*13):i%3===0?C1():i%3===1?C2():M().c3;
+      particles.push(new Spark(this.x,this.y,Math.cos(a)*s,Math.sin(a)*s,c));
+    }
+    for(let i=0;i<5;i++){
+      const a=(i/5)*Math.PI*2,l=30+Math.random()*60;
+      if(bolts.length<30) bolts.push(new Bolt(this.x,this.y,this.x+Math.cos(a)*l,this.y+Math.sin(a)*l,C1(i*25)));
+    }
+  }
+  show(){
+    if(this.life<=0&&!this.trail.length)return;
+    // Draw beam trail
+    for(let i=1;i<this.trail.length;i++){
+      const f=i/this.trail.length;
+      const a=f*this.life;
+      const w=this.w*f*this.life;
+      ctx.save();
+      ctx.shadowBlur=20*f;ctx.shadowColor=rg(this.col,a);
+      ctx.beginPath();
+      ctx.moveTo(this.trail[i-1].x,this.trail[i-1].y);
+      ctx.lineTo(this.trail[i].x,this.trail[i].y);
+      ctx.strokeStyle=rg(this.col,a);ctx.lineWidth=w;ctx.lineCap='round';ctx.stroke();
+      ctx.restore();
+    }
+    // Draw bright head
+    if(!this.hit){
+      ctx.save();
+      ctx.shadowBlur=30*this.life;ctx.shadowColor=rg(this.col,this.life);
+      ctx.beginPath();ctx.arc(this.x,this.y,this.w*this.life,0,Math.PI*2);
+      ctx.fillStyle=rg(M().c3,this.life*.9);ctx.fill();
+      ctx.restore();
+    }
+  }
+  get dead(){return(this.life<=0&&this.trail.length===0)||this.hit&&this.life<=0;}
+}
+
+// ── SHOOT BEAM ───────────────────────────────────────────────
+function shootBeam(thumbPt, indexPt, middlePt){
+  // Direction: from palm (middle knuckle) → index tip
+  const dx=indexPt[0]-middlePt[0];
+  const dy=indexPt[1]-middlePt[1];
+  const mx=(thumbPt[0]+indexPt[0])/2;
+  const my=(thumbPt[1]+indexPt[1])/2;
+  const col=modeIdx===4?RB(Math.random()*360):C1();
+  beams.push(new Beam(mx,my,dx,dy,col));
+  // Small burst at pinch origin
+  const n=Math.min(12,MAX_P-particles.length);
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2,s=1+Math.random()*4;
+    particles.push(new Spark(mx,my,Math.cos(a)*s,Math.sin(a)*s,col));
+  }
+}
+
+// ── SPARKS EMITTER ───────────────────────────────────────────
+function addSparks(x,y,n,spd){
+  if(particles.length>=MAX_P)return;
+  const cnt=Math.min(n,MAX_P-particles.length);
+  for(let i=0;i<cnt;i++){
+    const a=Math.random()*Math.PI*2,s=(1.5+Math.random()*4.5)*spd;
+    const c=modeIdx===4?RB(i*30):i%3===0?C1():i%3===1?C2():M().c3;
+    particles.push(new Spark(x,y,Math.cos(a)*s,Math.sin(a)*s,c));
+  }
+}
+function addBolt(x1,y1,x2,y2,c){if(bolts.length<28)bolts.push(new Bolt(x1,y1,x2,y2,c||C1()));}
+
+// ── DRAW HAND ────────────────────────────────────────────────
+function drawHand(kps,spd){
+  const g=cl(spd/18,0,1);
+  const bc=lC(C4(),C1(),g);
+  const tc=lC(C1(),M().c3,g);
+
+  ctx.save();
+  ctx.shadowBlur=7+g*20;ctx.shadowColor=rg(bc,.65);
+  ctx.strokeStyle=rg(bc,.28+g*.48);ctx.lineWidth=1.5+g*2;ctx.lineCap='round';
+  CONNS.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(kps[a][0],kps[a][1]);ctx.lineTo(kps[b][0],kps[b][1]);ctx.stroke();});
+  ctx.restore();
+
+  kps.forEach(([x,y],i)=>{
+    const isTip=TIPS.includes(i);
+    const col=isTip?tc:bc;
+    const r=isTip?5+g*7:2.5+g*2.5;
+    ctx.save();
+    ctx.shadowBlur=isTip?20+g*16:7+g*9;ctx.shadowColor=rg(col,.9);
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=rg(col,.2+g*.3);ctx.fill();
+    ctx.shadowBlur=5;ctx.shadowColor=rg(M().c3,.9);
+    ctx.beginPath();ctx.arc(x,y,isTip?2.5+g*2.5:1.4,0,Math.PI*2);ctx.fillStyle=rg(M().c3,.86);ctx.fill();
+    if(isTip){
+      const pr=r+2+Math.sin(fr*.15+i)*2.5;
+      ctx.shadowBlur=10+g*12;ctx.shadowColor=rg(C1(),.7*g);
+      ctx.beginPath();ctx.arc(x,y,pr,0,Math.PI*2);
+      ctx.strokeStyle=rg(C1(),g*.5);ctx.lineWidth=.8+g;ctx.stroke();
+    }
+    ctx.restore();
+  });
+
+  // Palm orb
+  const[wx,wy]=kps[0];
+  const pr=8+g*12+Math.sin(fr*.1)*2.5;
+  ctx.save();ctx.shadowBlur=20+g*20;ctx.shadowColor=rg(C1(),.75);
+  ctx.beginPath();ctx.arc(wx,wy,pr,0,Math.PI*2);ctx.fillStyle=rg(C1(),.1+g*.16);ctx.fill();
+  ctx.shadowBlur=7;ctx.shadowColor=rg(M().c3,.9);
+  ctx.beginPath();ctx.arc(wx,wy,3.5+g*3.5,0,Math.PI*2);ctx.fillStyle=rg(M().c3,.83);ctx.fill();
+  ctx.restore();
+
+  if(g>.4&&Math.random()<.28){
+    const i1=TIPS[Math.floor(Math.random()*5)];
+    const i2=TIPS[Math.floor(Math.random()*5)];
+    if(i1!==i2)addBolt(kps[i1][0],kps[i1][1],kps[i2][0],kps[i2][1],C1(Math.random()*100));
+  }
+}
+
+function drawTrail(id,x,y,spd){
+  if(!trails[id])trails[id]=[];
+  trails[id].push({x,y});
+  if(trails[id].length>14)trails[id].shift();
+  const g=cl(spd/18,0,1);
+  trails[id].forEach((pt,i)=>{
+    const f=i/trails[id].length,a=f*g*.38,r=f*4.5*g;
+    if(r<.3||a<.02)return;
+    ctx.save();ctx.shadowBlur=7;ctx.shadowColor=rg(C1(i*8),a);
+    ctx.beginPath();ctx.arc(pt.x,pt.y,r,0,Math.PI*2);ctx.fillStyle=rg(C1(i*8),a);ctx.fill();ctx.restore();
+  });
+}
+
+// ── PINCH ────────────────────────────────────────────────────
+function checkPinch(kps,hid){
+  const thumb=kps[4],index=kps[8],middle=kps[9];
+  const pd=d2(thumb,index);
+  const k=`p${hid}`;
+  if(!pinchCD[k])pinchCD[k]=0;
+  if(!pinchActive[k])pinchActive[k]=false;
+
+  if(pd<PINCH_PX&&pinchCD[k]<=0){
+    // SHOOT BEAM
+    shootBeam(thumb,index,middle);
+    pinchCD[k]=40; // cooldown between shots
+  }
+  if(pinchCD[k]>0)pinchCD[k]--;
+
+  // Charging glow when close to pinch
+  if(pd<PINCH_PX*1.8){
+    const charge=1-(pd/(PINCH_PX*1.8));
+    const mx=(thumb[0]+index[0])/2,my=(thumb[1]+index[1])/2;
+    ctx.save();
+    ctx.shadowBlur=20+charge*30;ctx.shadowColor=rg(C1(),charge);
+    ctx.beginPath();ctx.arc(mx,my,4+charge*10,0,Math.PI*2);
+    ctx.fillStyle=rg(C1(),charge*.4);ctx.fill();
+    ctx.shadowBlur=10;ctx.shadowColor=rg(M().c3,.9);
+    ctx.beginPath();ctx.arc(mx,my,2+charge*4,0,Math.PI*2);
+    ctx.fillStyle=rg(M().c3,charge*.8);ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ── DETECT ───────────────────────────────────────────────────
+function detectLoop(){
+  if(!animOn)return;
+  if(vidEl.currentTime!==lastT&&vidEl.readyState>=2){
+    lastT=vidEl.currentTime;
+    try{
+      const res=landmarker.detectForVideo(vidEl,performance.now());
+      handArr=[];
+      if(res.landmarks?.length){
+        res.landmarks.forEach((lms,i)=>{
+          const kps=lms.map(lm=>[useFront?(1-lm.x)*W:lm.x*W,lm.y*H]);
+          handArr.push({kps,id:i});
+        });
+      }
+    }catch(e){}
+  }
+  requestAnimationFrame(detectLoop);
+}
+
+// ── RENDER ───────────────────────────────────────────────────
+function render(){
+  if(!animOn||busy)return;
+  busy=true;fr++;
+  try{
+    // Transparent canvas — video shows through naturally
+    ctx.clearRect(0,0,W,H);
+
+    // Very subtle dark overlay to make effects pop without affecting colors
+    ctx.fillStyle='rgba(0,0,0,0.12)';
+    ctx.fillRect(0,0,W,H);
+
+    let totalSpd=0;
+    handArr.forEach(({kps,id})=>{
+      const w=kps[0];
+      const prev=prevPos[id];
+      let spd=0;
+      if(prev){
+        spd=Math.hypot(w[0]-prev.x,w[1]-prev.y);
+        totalSpd+=spd;
+        if(spd>10&&particles.length<MAX_P){
+          addSparks(w[0],w[1],Math.floor(spd/5),1);
+          if(spd>20) TIPS.forEach(tid=>{if(Math.random()<.38)addSparks(kps[tid][0],kps[tid][1],2,1.1);});
+        }
+        if(spd>25&&Math.random()<.45)
+          addBolt(w[0],w[1],kps[TIPS[Math.floor(Math.random()*5)]][0],kps[TIPS[Math.floor(Math.random()*5)]][1]);
+      }
+      prevPos[id]={x:w[0],y:w[1]};
+      TIPS.forEach(tid=>drawTrail(`${id}_${tid}`,kps[tid][0],kps[tid][1],spd));
+      drawHand(kps,spd);
+      checkPinch(kps,id);
+    });
+
+    if(!handArr.length)Object.keys(prevPos).forEach(k=>delete prevPos[k]);
+    if(handArr.length===2&&Math.random()<.07*intensity)
+      addBolt(handArr[0].kps[0][0],handArr[0].kps[0][1],handArr[1].kps[0][0],handArr[1].kps[0][1]);
+
+    intensity=cl(intensity*.88+(totalSpd/280)*.12*Math.max(handArr.length,1),0,1);
+    document.getElementById('mfill').style.height=(intensity*100)+'%';
+
+    // Draw beams
+    beams=beams.filter(b=>!b.dead);
+    beams.forEach(b=>{b.step();b.show();});
+
+    // Draw bolts
+    bolts=bolts.filter(b=>!b.dead);bolts.forEach(b=>{b.step();b.show();});
+
+    // Draw particles
+    particles=particles.filter(p=>!p.dead);particles.forEach(p=>{p.step();p.show();});
+
+  }catch(e){console.error(e);}
+  busy=false;requestAnimationFrame(render);
+}
+
+// ── MODE SWITCH ──────────────────────────────────────────────
+function applyMode(){
+  const m=M();
+  document.getElementById('logo').style.color=m.hc;
+  document.getElementById('logo').style.textShadow=`0 0 8px ${m.hc}`;
+  document.getElementById('lmsg').style.color=m.hc;
+  document.getElementById('lfill').style.background=`linear-gradient(90deg,${m.mg})`;
+  document.getElementById('mfill').style.background=`linear-gradient(0deg,${m.mg})`;
+  document.getElementById('mfill').style.boxShadow=`0 0 8px ${m.hc}`;
+  document.getElementById('modeName').textContent=m.name;
+  MODES.forEach((_,i)=>{
+    const b=document.getElementById(`m${i}`);
+    b.classList.toggle('active',i===modeIdx);
+    b.style.borderColor=i===modeIdx?m.hc:'rgba(255,255,255,.12)';
+    b.style.boxShadow=i===modeIdx?`0 0 12px ${m.hc}88`:'none';
+  });
+  particles=[];bolts=[];beams=[];
+}
+document.querySelectorAll('.modeBtn').forEach((b,i)=>b.addEventListener('click',()=>{modeIdx=i;applyMode();}));
+
+// ── CAMERA ───────────────────────────────────────────────────
+async function startCam(){
+  if(camStream)camStream.getTracks().forEach(t=>t.stop());
+  camStream=await navigator.mediaDevices.getUserMedia({
+    video:{facingMode:useFront?'user':'environment',width:{ideal:640},height:{ideal:480}},audio:false
+  });
+  vidEl.srcObject=camStream;
+  // Mirror front camera via CSS
+  vidEl.style.transform=useFront?'scaleX(-1)':'none';
+  await new Promise(r=>{vidEl.onloadeddata=r;setTimeout(r,3000);});
+}
+
+document.getElementById('camToggle').addEventListener('click',async()=>{useFront=!useFront;await startCam();});
+document.getElementById('btnBack').addEventListener('click',()=>{useFront=false;document.getElementById('btnBack').classList.add('sel');document.getElementById('btnFront').classList.remove('sel');});
+document.getElementById('btnFront').addEventListener('click',()=>{useFront=true;document.getElementById('btnFront').classList.add('sel');document.getElementById('btnBack').classList.remove('sel');});
+
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+
+// ── BOOT ─────────────────────────────────────────────────────
+document.getElementById('startBtn').addEventListener('click',async()=>{
+  document.getElementById('splash').classList.add('gone');
+  document.getElementById('loader').classList.add('show');
+  const fill=document.getElementById('lfill'),msg=document.getElementById('lmsg');
+  canvas=document.getElementById('c');ctx=canvas.getContext('2d');
+  vidEl=document.getElementById('vid');resize();
+  window.addEventListener('resize',resize);
+  applyMode();
+
+  let prog=0;
+  const tick=setInterval(()=>{prog=Math.min(prog+Math.random()*5,80);fill.style.width=prog+'%';},300);
+
+  msg.textContent='ACCESSING CAMERA…';
+  try{await startCam();}
+  catch(e){msg.textContent='CAMERA BLOCKED — ALLOW IN SAFARI SETTINGS';clearInterval(tick);return;}
+
+  msg.textContent='LOADING CORE…';
+  try{
+    const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+    fill.style.width='60%';msg.textContent='CHARGING NEURAL MESH…';
+    landmarker=await HandLandmarker.createFromOptions(vision,{
+      baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},
+      runningMode:'VIDEO',numHands:2,
+      minHandDetectionConfidence:.5,minHandPresenceConfidence:.5,minTrackingConfidence:.5,
+    });
+    clearInterval(tick);fill.style.width='100%';
+    await new Promise(r=>setTimeout(r,400));
+    document.getElementById('loader').classList.remove('show');
+    animOn=true;detectLoop();render();
+  }catch(e){clearInterval(tick);msg.textContent='ERROR: '+e.message;}
+});
+</script>
+</body>
+</html>
