@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>GAMING HANDS</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; background:#000; font-family:'Courier New',monospace; overflow:hidden; }
+
+#splash {
+  position:fixed; inset:0; background:#000;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:14px; z-index:100; padding:40px 28px;
+  transition:opacity 0.6s;
+}
+#splash.hidden { opacity:0; pointer-events:none; }
+.ico { font-size:50px; }
+#splash h1 { font-size:clamp(26px,8vw,44px); font-weight:900; letter-spacing:.1em; color:#00f5ff; text-shadow:0 0 20px #00f5ff; text-align:center; }
+.sub { font-size:10px; letter-spacing:.4em; color:rgba(0,245,255,.6); text-align:center; }
+#splash p { font-size:12px; line-height:1.9; color:rgba(255,255,255,.4); text-align:center; max-width:270px; }
+#splash p b { color:#00f5ff; }
+.gguide { display:flex; gap:12px; justify-content:center; }
+.gg { text-align:center; font-size:10px; color:rgba(255,255,255,.35); padding:8px 10px; border:1px solid rgba(255,255,255,.1); border-radius:8px; }
+.gg span { display:block; font-size:20px; margin-bottom:3px; }
+.camrow { display:flex; gap:10px; }
+.cbtn { flex:1; background:transparent; border:1px solid rgba(255,255,255,.25); color:rgba(255,255,255,.55); font-family:'Courier New',monospace; font-size:11px; font-weight:700; letter-spacing:.15em; padding:11px 8px; border-radius:4px; text-transform:uppercase; -webkit-appearance:none; cursor:pointer; }
+.cbtn.sel { border-color:#00f5ff; color:#00f5ff; background:rgba(0,245,255,.07); }
+#startBtn { width:100%; max-width:320px; padding:18px; background:rgba(0,245,255,.08); border:2px solid #00f5ff; color:#00f5ff; font-family:'Courier New',monospace; font-size:14px; font-weight:900; letter-spacing:.3em; text-transform:uppercase; text-align:center; border-radius:4px; box-shadow:0 0 24px rgba(0,245,255,.25); -webkit-appearance:none; cursor:pointer; display:block; text-decoration:none; }
+
+#loader { position:fixed; inset:0; background:#000; display:none; flex-direction:column; align-items:center; justify-content:center; gap:18px; z-index:200; }
+#loader.show { display:flex; }
+#lmsg { font-size:11px; letter-spacing:.26em; color:#00f5ff; text-shadow:0 0 8px #00f5ff; text-align:center; }
+#lbar { width:200px; height:2px; background:rgba(0,245,255,.1); border-radius:2px; overflow:hidden; }
+#lfill { height:100%; width:0%; transition:width .3s; background:linear-gradient(90deg,#00f5ff,#fff); }
+
+#app { position:fixed; inset:0; display:none; }
+#app.show { display:block; }
+#vid { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; }
+#c { position:fixed; inset:0; width:100%; height:100%; z-index:1; pointer-events:none; }
+
+#hud { position:fixed; top:0; left:0; right:0; display:flex; justify-content:space-between; align-items:flex-start; padding:calc(env(safe-area-inset-top,0px)+12px) 14px 0; z-index:10; pointer-events:none; }
+#logo { font-size:11px; font-weight:900; letter-spacing:.18em; line-height:1.4; }
+#logo small { display:block; font-size:8px; letter-spacing:.28em; opacity:.45; }
+#rightBtns { display:flex; flex-direction:column; gap:5px; align-items:flex-end; pointer-events:all; }
+.hbtn { font-size:9px; letter-spacing:.1em; padding:6px 11px; border:1px solid rgba(255,255,255,.2); border-radius:20px; color:rgba(255,255,255,.5); background:rgba(0,0,0,.6); -webkit-appearance:none; cursor:pointer; }
+
+#dots { position:fixed; bottom:calc(env(safe-area-inset-bottom,0px)+50px); left:50%; transform:translateX(-50%); display:flex; gap:9px; z-index:10; pointer-events:none; }
+.dot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.2); transition:all .3s; }
+.dot.on { transform:scale(1.6); }
+#modeLabel { position:fixed; bottom:calc(env(safe-area-inset-bottom,0px)+68px); left:0; right:0; text-align:center; font-size:12px; letter-spacing:.25em; text-transform:uppercase; z-index:10; pointer-events:none; opacity:0; transition:opacity .3s; }
+#modeLabel.show { opacity:1; }
+#hint { position:fixed; bottom:calc(env(safe-area-inset-bottom,8px)+8px); left:0; right:0; text-align:center; font-size:9px; letter-spacing:.14em; color:rgba(255,255,255,.2); text-transform:uppercase; z-index:10; pointer-events:none; }
+#flash { position:fixed; inset:0; z-index:5; pointer-events:none; opacity:0; transition:opacity .15s; }
+#meter { position:fixed; right:12px; top:50%; transform:translateY(-50%); width:4px; height:100px; background:rgba(255,255,255,.06); border-radius:4px; overflow:hidden; z-index:10; pointer-events:none; }
+#mfill { position:absolute; bottom:0; left:0; right:0; height:0%; transition:height .08s; }
+
+#hideBtn { position:fixed; bottom:calc(env(safe-area-inset-bottom,0px)+52px); left:14px; width:44px; height:44px; border-radius:50%; border:1px solid rgba(255,255,255,.25); background:rgba(0,0,0,.55); color:rgba(255,255,255,.6); font-size:18px; display:flex; align-items:center; justify-content:center; z-index:20; pointer-events:all; cursor:pointer; -webkit-appearance:none; }
+.ui-layer { transition:opacity 0.3s; }
+.ui-hidden { opacity:0 !important; pointer-events:none !important; }
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="ico">⚡</div>
+  <h1>GAMING HANDS</h1>
+  <div class="sub">PUBG MOBILE — 5 SKINS</div>
+  <p>Raise hand and <b>swipe left/right fast</b> to change skin mode.</p>
+  <div class="gguide">
+    <div class="gg"><span>👈</span>SWIPE LEFT<br>PREV</div>
+    <div class="gg"><span>🤚</span>MOVE<br>EFFECTS</div>
+    <div class="gg"><span>👉</span>SWIPE RIGHT<br>NEXT</div>
+  </div>
+  <div class="camrow">
+    <button class="cbtn" id="btnBack" onclick="selCam('back')">📷 BACK CAM</button>
+    <button class="cbtn" id="btnFront" onclick="selCam('front')">🤳 FRONT CAM</button>
+  </div>
+  <a id="startBtn" href="#" onclick="startApp();return false;">⚡ ACTIVATE</a>
+</div>
+
+<div id="loader"><div id="lmsg">LOADING…</div><div id="lbar"><div id="lfill"></div></div></div>
+
+<div id="app">
+  <video id="vid" autoplay playsinline muted></video>
+  <canvas id="c"></canvas>
+  <div id="hud" class="ui-layer">
+    <div id="logo">⚡ GAMING HANDS<small id="modeName">GLACIER</small></div>
+    <div id="rightBtns">
+      <button class="hbtn" id="camToggle" onclick="flipCam()">🔄 FLIP</button>
+      <button class="hbtn" id="filterBtn" onclick="toggleFilter()">🎨 FILTER: OFF</button>
+    </div>
+  </div>
+  <div id="dots" class="ui-layer">
+    <div class="dot on" id="d0"></div>
+    <div class="dot" id="d1"></div>
+    <div class="dot" id="d2"></div>
+    <div class="dot" id="d3"></div>
+    <div class="dot" id="d4"></div>
+  </div>
+  <div id="modeLabel" class="ui-layer">🧊 GLACIER</div>
+  <div id="hint" class="ui-layer">SWIPE HAND ← → TO CHANGE SKIN</div>
+  <div id="flash"></div>
+  <div id="meter" class="ui-layer"><div id="mfill"></div></div>
+  <button id="hideBtn" onclick="toggleUI()">👁️</button>
+</div>
+
+<script>
+var _camFront=false;
+function selCam(s){ _camFront=s==='front'; document.getElementById('btnBack').className='cbtn'+(_camFront?'':' sel'); document.getElementById('btnFront').className='cbtn'+(_camFront?' sel':''); }
+selCam('back');
+function startApp(){ document.getElementById('splash').classList.add('hidden'); document.getElementById('loader').classList.add('show'); window._doStart&&window._doStart(); }
+</script>
+
+<script type="module">
+import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+const BASE='https://raw.githubusercontent.com/vamanasaad-art/Ololol/main/';
+
+// ── 5 MODES matched to skin colors ────────────────────────────
+const MODES=[
+  {
+    name:'GLACIER', emoji:'🧊', img:'M4%20Glacier.png',
+    c1:[0,245,255],   c2:[100,220,255], c3:[220,250,255], c4:[0,160,210],
+    hc:'#00f5ff', mg:'#00f5ff,#b0eeff', dotColor:'#00f5ff'
+  },
+  {
+    name:'FIRE',    emoji:'🔥', img:'M4%20Fire.png',
+    c1:[255,140,0],   c2:[255,210,0],   c3:[255,240,120], c4:[200,60,0],
+    hc:'#ff8c00', mg:'#ff4400,#ffd000', dotColor:'#ff8c00'
+  },
+  {
+    name:'JOKER',   emoji:'🃏', img:'M4%20Joker.png',
+    c1:[160,0,255],   c2:[0,220,80],    c3:[255,100,200], c4:[100,0,180],
+    hc:'#a000ff', mg:'#7700cc,#00dd55', dotColor:'#a000ff'
+  },
+  {
+    name:'LIZARD',  emoji:'🦎', img:'M4%20Lizard.png',
+    c1:[200,255,0],   c2:[0,80,255],    c3:[255,255,100], c4:[150,200,0],
+    hc:'#ccff00', mg:'#aaee00,#0055ff', dotColor:'#ccff00'
+  },
+  {
+    name:'NETHER',  emoji:'🌌', img:'M4%20Nether.png',
+    c1:[200,80,255],  c2:[80,180,255],  c3:[255,220,255], c4:[140,0,200],
+    hc:'#cc50ff', mg:'#aa00ff,#5599ff', dotColor:'#cc50ff'
+  },
+];
+
+// Preload all M4 images
+const m4Imgs=MODES.map(m=>{ const i=new Image(); i.crossOrigin='anonymous'; i.src=BASE+m.img; return i; });
+
+let modeIdx=0;
+const M=()=>MODES[modeIdx];
+const MI=()=>m4Imgs[modeIdx];
+const RB=(o=0)=>{const h=(Date.now()*.06+o)%360;return[~~(127+127*Math.sin(h*Math.PI/180)),~~(127+127*Math.sin((h+120)*Math.PI/180)),~~(127+127*Math.sin((h+240)*Math.PI/180))];};
+const C1=(o=0)=>M().c1;
+const C2=(o=0)=>M().c2;
+const C4=(o=0)=>M().c4;
+
+const TIPS=[4,8,12,16,20];
+const CONNS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];
+const MAX_P=120;
+
+let canvas,ctx,vidEl,landmarker,camStream,audioCtx;
+let W,H,fr=0,lastT=-1;
+let handArr=[];
+let particles=[],bolts=[],trails={},prevPos={};
+// IMPROVED swipe: track per-hand with velocity buffer
+let swipeHist={},swipeCD=0;
+let handAnims=[];
+let intensity=0,animOn=false,busy=false,filterOn=false;
+
+const rg=(c,a)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const lC=(a,b,f)=>a.map((v,i)=>v+(b[i]-v)*f);
+const cl=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+const rn=(a,b)=>a+Math.random()*(b-a);
+const d2=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+
+// ── AUDIO ─────────────────────────────────────────────────────
+function initAudio(){ if(audioCtx)return; try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){} }
+function playMode(dir){
+  if(!audioCtx)return;
+  try{
+    const t=audioCtx.currentTime;
+    const base=300+modeIdx*80;
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.connect(g);g.connect(audioCtx.destination);o.type='sine';
+    o.frequency.setValueAtTime(dir>0?200:600,t);
+    o.frequency.exponentialRampToValueAtTime(dir>0?600:200,t+.12);
+    g.gain.setValueAtTime(.15,t);g.gain.linearRampToValueAtTime(0,t+.14);
+    o.start(t);o.stop(t+.15);
+    [.12,.22].forEach((d,i)=>{
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o2.connect(g2);g2.connect(audioCtx.destination);o2.type='sine';
+      o2.frequency.setValueAtTime(base*(i?1.33:1),t+d);
+      g2.gain.setValueAtTime(0,t+d);g2.gain.linearRampToValueAtTime(.18,t+d+.02);
+      g2.gain.linearRampToValueAtTime(0,t+d+.18);o2.start(t+d);o2.stop(t+d+.2);
+    });
+  }catch(e){}
+}
+
+// ── PARTICLES ─────────────────────────────────────────────────
+class Spark{
+  constructor(x,y,vx,vy,col){ this.x=x;this.y=y;this.vx=vx??rn(-4,4);this.vy=vy??rn(-5,1); this.col=col||C1();this.r=rn(1,3);this.life=1;this.decay=rn(.02,.04); }
+  step(){ this.x+=this.vx;this.y+=this.vy;this.vy+=.1;this.vx*=.95;this.life-=this.decay; }
+  show(){ ctx.save();ctx.shadowBlur=10;ctx.shadowColor=rg(this.col,this.life);ctx.beginPath();ctx.arc(this.x,this.y,this.r*this.life,0,Math.PI*2);ctx.fillStyle=rg(this.col,this.life);ctx.fill();ctx.restore(); }
+  get dead(){ return this.life<=0; }
+}
+class Bolt{
+  constructor(x1,y1,x2,y2,col){ this.col=col||C1();this.life=1;this.decay=.09+Math.random()*.07;this.pts=this._mk(x1,y1,x2,y2,4); }
+  _mk(x1,y1,x2,y2,d){ if(!d)return[{x:x1,y:y1},{x:x2,y:y2}];const l=Math.hypot(x2-x1,y2-y1);const mx=(x1+x2)/2+(Math.random()-.5)*l*.4;const my=(y1+y2)/2+(Math.random()-.5)*l*.4;return[...this._mk(x1,y1,mx,my,d-1),...this._mk(mx,my,x2,y2,d-1)]; }
+  step(){ this.life-=this.decay; }
+  show(){ if(this.life<=0)return;ctx.save();ctx.shadowBlur=14*this.life;ctx.shadowColor=rg(this.col,this.life);ctx.strokeStyle=rg(this.col,this.life);ctx.lineWidth=1.3*this.life;ctx.lineCap='round';ctx.beginPath();this.pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();ctx.restore(); }
+  get dead(){ return this.life<=0; }
+}
+function addSparks(x,y,n,s){ if(particles.length>=MAX_P)return;const cnt=Math.min(n,MAX_P-particles.length);for(let i=0;i<cnt;i++){const a=Math.random()*Math.PI*2,sp=(1.5+Math.random()*4)*s;const c=i%3===0?C1():i%3===1?C2():M().c3;particles.push(new Spark(x,y,Math.cos(a)*sp,Math.sin(a)*sp,c));} }
+function addBolt(x1,y1,x2,y2,c){ if(bolts.length<24)bolts.push(new Bolt(x1,y1,x2,y2,c||C1())); }
+
+// ── SWIPE — improved sensitivity ──────────────────────────────
+// Uses index fingertip (more responsive than wrist) + lower thresholds
+function updateSwipe(id,kps){
+  if(!swipeHist[id])swipeHist[id]=[];
+  // Use index MCP (knuckle 5) x position — more stable than wrist
+  const tx=kps[5][0];
+  swipeHist[id].push({x:tx,f:fr});
+  swipeHist[id]=swipeHist[id].filter(p=>fr-p.f<=18);
+  if(swipeCD>0){swipeCD--;return;}
+  const h=swipeHist[id];
+  if(h.length<6)return;
+  const dx=h[h.length-1].x-h[0].x;
+  const dy=Math.abs(kps[5][1]-kps[0][1]); // ignore if mostly vertical
+  const adx=Math.abs(dx);
+  // LOWER thresholds for easier triggering
+  if(adx<W*.22)return;           // min 22% screen width (was 32%)
+  if(adx/h.length<12)return;     // min speed (was 18)
+  if(adx<dy*1.5)return;          // must be more horizontal than vertical (was 2.2)
+  // Check consistency
+  let rev=0;const dir=Math.sign(dx);
+  for(let i=1;i<h.length;i++)if(Math.sign(h[i].x-h[i-1].x)===-dir)rev++;
+  if(rev>4)return;               // allow slightly more wobble (was 3)
+  changeMode(dir);
+  swipeHist[id]=[];
+  swipeCD=50;
+}
+
+// ── MODE CHANGE ───────────────────────────────────────────────
+let flashTO=null,labelTO=null;
+function changeMode(dir){
+  modeIdx=(modeIdx+dir+MODES.length)%MODES.length;
+  initAudio();playMode(dir);
+  applyMode();
+  const fl=document.getElementById('flash');
+  fl.style.background=M().hc;fl.style.opacity='.18';
+  clearTimeout(flashTO);flashTO=setTimeout(()=>fl.style.opacity='0',200);
+  const lb=document.getElementById('modeLabel');
+  lb.textContent=M().emoji+' '+M().name;lb.style.color=M().hc;
+  lb.classList.add('show');clearTimeout(labelTO);labelTO=setTimeout(()=>lb.classList.remove('show'),1800);
+  // Always spawn at fixed position — centred, above middle of screen
+  handAnims.push({x:W/2, y:H*0.35, life:1, scale:0, vy:0, modeAt:modeIdx});
+  particles=[];bolts=[];
+}
+
+// ── M4 ANIM ───────────────────────────────────────────────────
+function drawHandAnims(){
+  handAnims=handAnims.filter(a=>a.life>0);
+  handAnims.forEach(a=>{
+    a.life-=0.016;
+    a.y+=a.vy; a.vy*=0.85;
+    if(a.life>0.75) a.scale=Math.min(1,(1-a.life)*8);
+    else a.scale=cl(a.life/0.75,0,1);
+    const alpha=cl(a.life*1.5,0,1);
+    if(alpha<0.02||a.scale<0.01)return;
+    const img=m4Imgs[a.modeAt!==undefined?a.modeAt:modeIdx];
+    if(!img.complete||img.naturalWidth===0)return;
+    const iw=img.naturalWidth,ih=img.naturalHeight;
+    const drawW=W*0.75*a.scale;
+    const drawH=drawW*(ih/iw);
+    ctx.save();
+    ctx.globalAlpha=alpha;
+    ctx.shadowBlur=25;
+    ctx.shadowColor=M().hc;
+    ctx.drawImage(img,a.x-drawW/2,a.y-drawH/2,drawW,drawH);
+    ctx.restore();
+  });
+}
+
+function applyMode(){
+  const m=M();
+  const logo=document.getElementById('logo');
+  logo.style.color=m.hc;logo.style.textShadow=`0 0 8px ${m.hc}`;
+  document.getElementById('modeName').textContent=m.name;
+  document.getElementById('mfill').style.background=`linear-gradient(0deg,${m.mg})`;
+  MODES.forEach((_,i)=>{
+    const d=document.getElementById(`d${i}`);
+    d.classList.toggle('on',i===modeIdx);
+    d.style.background=i===modeIdx?m.dotColor:'rgba(255,255,255,.2)';
+    d.style.boxShadow=i===modeIdx?`0 0 8px ${m.dotColor}`:'none';
+  });
+}
+
+// ── DRAW HAND ─────────────────────────────────────────────────
+function drawHand(kps,spd){
+  const g=cl(spd/18,0,1);
+  const bc=lC(C4(),C1(),g),tc=lC(C1(),M().c3,g);
+
+  // ── ARM LINE ──────────────────────────────────────────────────
+  // Direction: FROM middle knuckle (9) THROUGH wrist (0), extended further
+  // This always points down toward the elbow regardless of hand orientation
+  const wx=kps[0][0], wy=kps[0][1];
+  const mkx=kps[9][0], mky=kps[9][1];
+  // Vector from middle knuckle → wrist, then extend beyond wrist
+  const adx=wx-mkx, ady=wy-mky;
+  const alen=Math.hypot(adx,ady)||1;
+  const andx=adx/alen, andy=ady/alen;
+  // Extend 2x the hand length beyond the wrist toward elbow
+  const armLen=alen*2.8;
+  const ex=wx+andx*armLen, ey=wy+andy*armLen;
+  // Draw dashed arm line
+  ctx.save();
+  ctx.shadowBlur=8; ctx.shadowColor=rg(bc,.5);
+  ctx.strokeStyle=rg(bc,.4); ctx.lineWidth=2; ctx.lineCap='round';
+  ctx.setLineDash([10,7]);
+  ctx.beginPath(); ctx.moveTo(wx,wy); ctx.lineTo(ex,ey);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // Small dot at estimated elbow position
+  ctx.shadowBlur=12; ctx.shadowColor=rg(bc,.8);
+  ctx.beginPath(); ctx.arc(ex,ey,4,0,Math.PI*2);
+  ctx.fillStyle=rg(bc,.6); ctx.fill();
+  ctx.restore();
+
+  // Skeleton
+  ctx.save();
+  ctx.shadowBlur=7+g*20;ctx.shadowColor=rg(bc,.65);
+  ctx.strokeStyle=rg(bc,.28+g*.48);ctx.lineWidth=1.5+g*2;ctx.lineCap='round';
+  CONNS.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(kps[a][0],kps[a][1]);ctx.lineTo(kps[b][0],kps[b][1]);ctx.stroke();});
+  ctx.restore();
+
+  // Joints
+  kps.forEach(([x,y],i)=>{
+    const isTip=TIPS.includes(i);
+    const c=isTip?tc:bc,r=isTip?5+g*7:2.5+g*2.5;
+    ctx.save();ctx.shadowBlur=isTip?20+g*16:7+g*9;ctx.shadowColor=rg(c,.9);
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=rg(c,.22+g*.3);ctx.fill();
+    ctx.shadowBlur=4;ctx.shadowColor=rg(M().c3,.9);
+    ctx.beginPath();ctx.arc(x,y,isTip?2+g*2:1.4,0,Math.PI*2);ctx.fillStyle=rg(M().c3,.86);ctx.fill();
+    if(isTip){
+      const pr=r+2+Math.sin(fr*.15+i)*2.5;
+      ctx.shadowBlur=10+g*12;ctx.shadowColor=rg(C1(),.7*g);
+      ctx.beginPath();ctx.arc(x,y,pr,0,Math.PI*2);ctx.strokeStyle=rg(C1(),g*.5);ctx.lineWidth=.8+g;ctx.stroke();
+    }
+    ctx.restore();
+  });
+
+  // Palm orb
+  const pr=8+g*12+Math.sin(fr*.1)*2.5;
+  ctx.save();ctx.shadowBlur=20+g*20;ctx.shadowColor=rg(C1(),.75);
+  ctx.beginPath();ctx.arc(wx,wy,pr,0,Math.PI*2);ctx.fillStyle=rg(C1(),.1+g*.16);ctx.fill();
+  ctx.shadowBlur=7;ctx.shadowColor=rg(M().c3,.9);
+  ctx.beginPath();ctx.arc(wx,wy,3.5+g*3.5,0,Math.PI*2);ctx.fillStyle=rg(M().c3,.83);ctx.fill();
+  ctx.restore();
+
+  if(g>.4&&Math.random()<.28){
+    const i1=TIPS[~~(Math.random()*5)],i2=TIPS[~~(Math.random()*5)];
+    if(i1!==i2)addBolt(kps[i1][0],kps[i1][1],kps[i2][0],kps[i2][1],C1());
+  }
+}
+
+function drawTrail(id,x,y,spd){
+  if(!trails[id])trails[id]=[];
+  trails[id].push({x,y});if(trails[id].length>14)trails[id].shift();
+  const g=cl(spd/18,0,1);
+  trails[id].forEach((pt,i)=>{
+    const f=i/trails[id].length,a=f*g*.38,r=f*4.5*g;
+    if(r<.3||a<.02)return;
+    ctx.save();ctx.shadowBlur=7;ctx.shadowColor=rg(C1(),a);
+    ctx.beginPath();ctx.arc(pt.x,pt.y,r,0,Math.PI*2);ctx.fillStyle=rg(C1(),a);ctx.fill();ctx.restore();
+  });
+}
+
+// ── COORDINATE MAPPING ────────────────────────────────────────
+function lmToScreen(lm){
+  const vw=vidEl.videoWidth||640,vh=vidEl.videoHeight||480;
+  const va=vw/vh,sa=W/H;
+  let sx,sy,ox=0,oy=0;
+  if(va>sa){sy=H/vh;sx=sy;ox=(W-vw*sx)/2;}
+  else{sx=W/vw;sy=sx;oy=(H-vh*sy)/2;}
+  let x=lm.x*vw*sx+ox;
+  let y=lm.y*vh*sy+oy;
+  if(_camFront)x=W-x;
+  return[x,y];
+}
+
+// ── DETECT ────────────────────────────────────────────────────
+function detectLoop(){
+  if(!animOn)return;
+  if(vidEl.currentTime!==lastT&&vidEl.readyState>=2){
+    lastT=vidEl.currentTime;
+    try{
+      const res=landmarker.detectForVideo(vidEl,performance.now());
+      handArr=[];
+      res.landmarks?.forEach((lms,i)=>{
+        handArr.push({kps:lms.map(lm=>lmToScreen(lm)),id:i});
+      });
+    }catch(e){}
+  }
+  requestAnimationFrame(detectLoop);
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function render(){
+  if(!animOn||busy)return;
+  busy=true;fr++;
+  try{
+    ctx.clearRect(0,0,W,H);
+    if(filterOn){
+      ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+      if(vidEl.readyState>=2){
+        try{
+          const vw=vidEl.videoWidth||640,vh=vidEl.videoHeight||480;
+          const va=vw/vh,sa=W/H;
+          let sx,sy,ox=0,oy=0;
+          if(va>sa){sy=H/vh;sx=sy;ox=(W-vw*sx)/2;}
+          else{sx=W/vw;sy=sx;oy=(H-vh*sy)/2;}
+          const dw=vw*sx,dh=vh*sy;
+          ctx.save();ctx.globalAlpha=.22;
+          ctx.filter='saturate(0) brightness(.3) sepia(1) hue-rotate(185deg)';
+          if(_camFront){ctx.translate(ox+dw,0);ctx.scale(-1,1);ctx.drawImage(vidEl,0,oy,dw,dh);}
+          else ctx.drawImage(vidEl,ox,oy,dw,dh);
+          ctx.restore();
+        }catch(e){}
+      }
+    }
+    ctx.fillStyle='rgba(0,0,0,.08)';ctx.fillRect(0,0,W,H);
+
+    let ts=0;
+    handArr.forEach(({kps,id})=>{
+      const w=kps[0],prev=prevPos[id];let spd=0;
+      if(prev){
+        spd=Math.hypot(w[0]-prev.x,w[1]-prev.y);ts+=spd;
+        if(spd>10&&particles.length<MAX_P){
+          addSparks(w[0],w[1],~~(spd/5),1);
+          if(spd>20)TIPS.forEach(t=>{if(Math.random()<.35)addSparks(kps[t][0],kps[t][1],2,1.1);});
+        }
+        if(spd>25&&Math.random()<.4)addBolt(w[0],w[1],kps[TIPS[~~(Math.random()*5)]][0],kps[TIPS[~~(Math.random()*5)]][1]);
+      }
+      prevPos[id]={x:w[0],y:w[1]};
+      updateSwipe(id,kps);
+      TIPS.forEach(t=>drawTrail(`${id}_${t}`,kps[t][0],kps[t][1],spd));
+      drawHand(kps,spd);
+    });
+    if(!handArr.length){Object.keys(prevPos).forEach(k=>delete prevPos[k]);Object.keys(swipeHist).forEach(k=>delete swipeHist[k]);}
+    if(handArr.length===2&&Math.random()<.07*intensity)addBolt(handArr[0].kps[0][0],handArr[0].kps[0][1],handArr[1].kps[0][0],handArr[1].kps[0][1]);
+
+    intensity=cl(intensity*.88+(ts/280)*.12*Math.max(handArr.length,1),0,1);
+    document.getElementById('mfill').style.height=(intensity*100)+'%';
+
+    drawHandAnims();
+    bolts=bolts.filter(b=>!b.dead);bolts.forEach(b=>{b.step();b.show();});
+    particles=particles.filter(p=>!p.dead);particles.forEach(p=>{p.step();p.show();});
+  }catch(e){console.error(e);}
+  busy=false;requestAnimationFrame(render);
+}
+
+function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
+
+// ── CAMERA — lock focus & zoom ─────────────────────────────────
+async function startCam(){
+  if(camStream)camStream.getTracks().forEach(t=>t.stop());
+  // Fix 3: lock focus, disable auto zoom
+  const constraints={
+    video:{
+      facingMode:_camFront?'user':'environment',
+      width:{ideal:1280},
+      height:{ideal:720},
+      // Fix 5: wider zoom to see hands + phone screen
+      zoom:1,
+      focusMode:'manual',
+      advanced:[{zoom:1}]
+    },
+    audio:false
+  };
+  camStream=await navigator.mediaDevices.getUserMedia(constraints);
+  // Try to lock focus after getting stream
+  try{
+    const track=camStream.getVideoTracks()[0];
+    const caps=track.getCapabilities();
+    const settings={};
+    if(caps.focusMode&&caps.focusMode.includes('manual')) settings.focusMode='manual';
+    if(caps.zoom) settings.zoom=caps.zoom.min||1;
+    if(Object.keys(settings).length>0) await track.applyConstraints({advanced:[settings]});
+  }catch(e){}
+  vidEl.srcObject=camStream;
+  vidEl.style.transform=_camFront?'scaleX(-1)':'none';
+  await new Promise(r=>{vidEl.onloadeddata=r;setTimeout(r,3000);});
+}
+
+// ── UI TOGGLE ─────────────────────────────────────────────────
+let uiVisible=true;
+window.toggleUI=()=>{
+  uiVisible=!uiVisible;
+  document.querySelectorAll('.ui-layer').forEach(el=>el.classList.toggle('ui-hidden',!uiVisible));
+  const btn=document.getElementById('hideBtn');
+  btn.textContent=uiVisible?'👁️':'👁️‍🗨️';
+  btn.style.opacity=uiVisible?'1':'0.3';
+};
+
+window.flipCam=async()=>{ _camFront=!_camFront; await startCam(); };
+window.toggleFilter=()=>{
+  filterOn=!filterOn;
+  const b=document.getElementById('filterBtn');
+  b.textContent=filterOn?'🎨 FILTER: ON':'🎨 FILTER: OFF';
+  b.classList.toggle('on',filterOn);
+  if(vidEl)vidEl.style.opacity=filterOn?'0':'1';
+};
+
+// ── BOOT ──────────────────────────────────────────────────────
+window._doStart=async()=>{
+  initAudio();
+  const fill=document.getElementById('lfill'),msg=document.getElementById('lmsg');
+  canvas=document.getElementById('c');ctx=canvas.getContext('2d');
+  vidEl=document.getElementById('vid');resize();
+  window.addEventListener('resize',resize);
+  applyMode();
+  let prog=0;
+  const tick=setInterval(()=>{prog=Math.min(prog+Math.random()*5,80);fill.style.width=prog+'%';},300);
+  msg.textContent='ACCESSING CAMERA…';
+  try{ await startCam(); }
+  catch(e){ msg.textContent='CAMERA BLOCKED — ALLOW IN SETTINGS'; clearInterval(tick); return; }
+  msg.textContent='LOADING HAND TRACKER…';
+  try{
+    const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+    fill.style.width='60%'; msg.textContent='CHARGING NEURAL MESH…';
+    landmarker=await HandLandmarker.createFromOptions(vision,{
+      baseOptions:{ modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task', delegate:'GPU' },
+      runningMode:'VIDEO', numHands:2,
+      minHandDetectionConfidence:.5, minHandPresenceConfidence:.5, minTrackingConfidence:.5,
+    });
+    clearInterval(tick); fill.style.width='100%';
+    await new Promise(r=>setTimeout(r,400));
+    document.getElementById('loader').classList.remove('show');
+    document.getElementById('app').classList.add('show');
+    animOn=true; detectLoop(); render();
+  }catch(e){ clearInterval(tick); msg.textContent='ERROR: '+e.message; }
+};
+if(window._startPending)window._doStart();
+</script>
+</body>
+</html>
